@@ -2,6 +2,8 @@ bl_info = {
     "name": "IGP Artistant",
     "blender": (2, 80, 0),
     "category": "3D View",
+    "author": "Cedric Van der Kelen",
+    "description": "IGP Artistant: Adds functionalities like Auto-Lattice and Smart Group to create game art in Blender.",
 }
 
 import bpy
