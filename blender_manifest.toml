@@ -15,7 +15,7 @@ type = "add-on"
 
 # Optional list defined by Blender and server, see:
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
-tags = ["Game Art", "Modelling", "Exporter", "Export"]
+tags = ["Modeling", "Import-Export"]
 
 blender_version_min = "4.3.0"
 # # Optional: Blender version that the extension does not support, earlier versions are supported.
@@ -25,7 +25,7 @@ blender_version_min = "4.3.0"
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
 license = [
-  "SPDX:CC0-1.0",
+  "SPDX:GPL-3.0-or-later",
 ]
 
 # Optional: required by some licenses.
