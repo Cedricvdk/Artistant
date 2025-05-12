@@ -11,6 +11,7 @@ import bpy
 from .panel import ARTISTANT_PT_panel
 from .operators import ARTISTANT_OT_auto_lattice_operator, ARTISTANT_OT_smart_group_operator
 from .export_operator import ARTISTANT_OT_export_unity_fbx
+from .reload_images_operator import ARTISTANT_OT_reload_images
 
 def register():
     bpy.utils.register_class(ARTISTANT_PT_panel)
@@ -26,6 +27,7 @@ def register():
         name="Individual",
         default=False
     )
+    bpy.utils.register_class(ARTISTANT_OT_reload_images)
 
 def unregister():
     del bpy.types.Scene.export_folder
@@ -34,6 +36,7 @@ def unregister():
     bpy.utils.unregister_class(ARTISTANT_OT_auto_lattice_operator)
     bpy.utils.unregister_class(ARTISTANT_OT_smart_group_operator)
     bpy.utils.unregister_class(ARTISTANT_OT_export_unity_fbx)
+    bpy.utils.unregister_class(ARTISTANT_OT_reload_images)
 
 if __name__ == "__main__":
     register()

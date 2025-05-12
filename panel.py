@@ -17,6 +17,8 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         layout.prop(context.scene, "export_individual")
         layout.operator("artistant.export_unity_fbx")
 
+        layout.operator("artistant.reload_images")
+
 def register():
     bpy.types.Scene.export_folder = bpy.props.StringProperty(
         name="Export Folder",
