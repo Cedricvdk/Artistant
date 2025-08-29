@@ -1,3 +1,4 @@
+# panel.py
 import bpy
 
 class ARTISTANT_PT_panel(bpy.types.Panel):
@@ -9,30 +10,35 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("artistant.auto_lattice_operator")
-        layout.operator("artistant.smart_group_operator")
-        
-        layout.label(text="Export Unity Asset")
-        layout.prop(context.scene, "export_folder")
-        layout.prop(context.scene, "export_individual")
-        layout.operator("artistant.export_unity_fbx")
 
-        layout.operator("artistant.reload_images")
+        # --- Tools ---
+        tools_box = layout.box()
+        tools_box.label(text="Tools", icon='TOOL_SETTINGS')
+        col = tools_box.column(align=True)
+        col.operator("artistant.auto_lattice_operator", text="Auto Lattice", icon='MOD_LATTICE')
+        col.operator("artistant.smart_group_operator", text="Smart Group", icon='GROUP')
 
-def register():
-    bpy.types.Scene.export_folder = bpy.props.StringProperty(
-        name="Export Folder",
-        subtype='DIR_PATH',
-        default=""
-    )
-    bpy.types.Scene.export_individual = bpy.props.BoolProperty(
-        name="Individual",
-        default=False
-    )
-    bpy.utils.register_class(ARTISTANT_PT_panel)
+        col.separator()
+        row = col.row(align=True)
+        row.enabled = bool(getattr(context, "selected_editable_objects", []))
+        row.operator("artistant.visualize_normals", text="Visualize Normals", icon='MOD_NORMALEDIT')
 
+        # --- Export section ---
+        export_box = layout.box()
+        export_box.label(text="Export Unity Asset", icon='EXPORT')
+        col = export_box.column(align=True)
+        col.prop(context.scene, "export_folder")
+        col.prop(context.scene, "export_individual")
 
-def unregister():
-    del bpy.types.Scene.export_folder
-    del bpy.types.Scene.export_individual
-    bpy.utils.unregister_class(ARTISTANT_PT_panel)
+        # New: Mode dropdown
+        col.prop(context.scene, "export_fbx_mode", text="Mode")
+        col.prop(context.scene, "export_reset_location", text="Reset Root Location (0,0,0)")
+        # Pass the chosen mode to the operator
+        op = col.operator("artistant.export_unity_fbx", text="Export to FBX", icon='FILE_FOLDER')
+        op.mode = context.scene.export_fbx_mode  # hand the selection to operator
+        op.reset_location = context.scene.export_reset_location  # <— pass the toggle
+
+        # --- Utilities ---
+        util_box = layout.box()
+        util_box.label(text="Utilities", icon='FILE_REFRESH')
+        util_box.operator("artistant.reload_images", text="Reload Images", icon='IMAGE')
