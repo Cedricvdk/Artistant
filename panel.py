@@ -36,7 +36,18 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         # Pass the chosen mode to the operator
         op = col.operator("artistant.export_unity_fbx", text="Export to FBX", icon='FILE_FOLDER')
         op.mode = context.scene.export_fbx_mode  # hand the selection to operator
-        op.reset_location = context.scene.export_reset_location  # <— pass the toggle
+        op.reset_location = context.scene.export_reset_location
+
+        # --- Selection (NEW) ---
+        select_box = layout.box()
+        select_box.label(text="Select By Name", icon='FILTER')
+        col = select_box.column(align=True)
+        col.prop(context.scene, "select_by_name_query", text="Name")
+        col.prop(context.scene, "select_by_name_exact", text="Exact")
+
+        op = col.operator("artistant.select_by_name", text="Select", icon='RESTRICT_SELECT_OFF')
+        op.query = context.scene.select_by_name_query
+        op.exact = context.scene.select_by_name_exact
 
         # --- Utilities ---
         util_box = layout.box()
