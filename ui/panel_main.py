@@ -15,7 +15,6 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         tools_box = layout.box()
         tools_box.label(text="Tools", icon='TOOL_SETTINGS')
         col = tools_box.column(align=True)
-        col.operator("artistant.auto_lattice_operator", text="Auto Lattice", icon='MOD_LATTICE')
         col.operator("artistant.smart_group_operator", text="Smart Group", icon='GROUP')
 
         col.separator()

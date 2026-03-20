@@ -2,10 +2,6 @@
 
 Functionalities:
 
-**Auto-Lattice**
-Creates a lattice object on the bounding box of the selected objects, adds 1 resolution to each dimension and adds the modifier to all selected objects, and finally parents the objects to the lattice.
-Speeds up the process for those who like to work with lattices
-
 **Smart Group**
 Creates an empty (box shape) as a bounding box over the selected objects and parents those objects to that empty, for a Maya-esque grouping functionality.
 
