@@ -1,4 +1,3 @@
-# export_operator.py
 import bpy
 import os
 import math
@@ -412,10 +411,3 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
         plural = "FBXs" if len(exported_paths) > 1 else "FBX"
         self.report({'INFO'}, f"Exported {len(exported_paths)} {plural} to: {export_folder} (Mode: {mode})")
         return {'FINISHED'}
-
-
-def register():
-    bpy.utils.register_class(ARTISTANT_OT_export_unity_fbx)
-
-def unregister():
-    bpy.utils.unregister_class(ARTISTANT_OT_export_unity_fbx)

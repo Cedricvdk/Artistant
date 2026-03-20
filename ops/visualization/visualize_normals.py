@@ -1,9 +1,8 @@
-
-# visualize_normals_operator.py
-
 import os
 import bpy
 from bpy.types import Operator
+
+from ...core.paths import asset_path
 
 
 class ARTISTANT_OT_visualize_normals(Operator):
@@ -20,7 +19,7 @@ class ARTISTANT_OT_visualize_normals(Operator):
 
     # The node group name and the .blend filename that contains it
     NODE_GROUP_NAME = "showNormals"
-    BLEND_FILE_NAME = "vizualizeNormals.blend"
+    BLEND_FILE_NAME = "visualize_normals.blend"
 
     @classmethod
     def poll(cls, context):
@@ -33,9 +32,7 @@ class ARTISTANT_OT_visualize_normals(Operator):
         if ng:
             return ng
 
-        # Resolve path to the .blend that ships with the addon (same folder as __init__.py)
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        blend_path = os.path.join(base_dir, self.BLEND_FILE_NAME)
+        blend_path = asset_path(self.BLEND_FILE_NAME)
 
         if not os.path.exists(blend_path):
             self.report({'ERROR'}, f"Blend file not found: {blend_path}")

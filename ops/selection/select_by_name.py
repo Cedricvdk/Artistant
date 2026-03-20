@@ -1,4 +1,3 @@
-# select_by_name_operator.py
 import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty

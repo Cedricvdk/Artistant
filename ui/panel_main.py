@@ -1,8 +1,8 @@
-# panel.py
 import bpy
 
+
 class ARTISTANT_PT_panel(bpy.types.Panel):
-    bl_label = "Artistant"
+    bl_label = "Artistant v2.0"
     bl_idname = "ARTISTANT_PT_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
