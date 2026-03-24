@@ -28,13 +28,8 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         col = export_box.column(align=True)
         col.prop(context.scene, "export_folder")
         col.prop(context.scene, "export_individual")
-
-        # New: Mode dropdown
-        col.prop(context.scene, "export_fbx_mode", text="Mode")
         col.prop(context.scene, "export_reset_location", text="Reset Root Location (0,0,0)")
-        # Pass the chosen mode to the operator
         op = col.operator("artistant.export_unity_fbx", text="Export to FBX", icon='FILE_FOLDER')
-        op.mode = context.scene.export_fbx_mode  # hand the selection to operator
         op.reset_location = context.scene.export_reset_location
 
         # --- Selection (NEW) ---
