@@ -20,29 +20,40 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         tools_box = layout.box()
         tools_box.label(text="Tools", icon='TOOL_SETTINGS')
         col = tools_box.column(align=True)
-        # Smart Group: Create a bounding-box parent for selected objects
-        col.operator("artistant.smart_group_operator", text="Smart Group", icon='GROUP')
+        in_object_mode = (context.mode == 'OBJECT')
 
-        col.separator()
-        # Floor Pivot: Drop the origin of each selected mesh to its lowest vertex Z
-        col.operator("artistant.floor_pivot", text="Floor Pivot", icon='OBJECT_ORIGIN')
-        # Floor Object: Move each selected object so its origin is at world Z = 0
-        col.operator("artistant.floor_object", text="Floor Object", icon='SORT_ASC')
-
-        col.separator()
-        # Select Orphans: Select objects without parents
-        col.operator("artistant.select_orphans", text="Select Orphans", icon='OUTLINER_OB_EMPTY')
-
-        col.separator()
-        # Visualize Normals: Apply geometry nodes to visualize surface normals
+        # Smart Group: Object mode only
         row = col.row(align=True)
-        row.enabled = bool(getattr(context, "selected_editable_objects", []))
+        row.enabled = in_object_mode
+        row.operator("artistant.smart_group_operator", text="Smart Group", icon='GROUP')
+
+        col.separator()
+        # Floor Pivot: works in Object mode and Edit Mesh mode
+        row = col.row(align=True)
+        row.enabled = context.mode in {'OBJECT', 'EDIT_MESH'}
+        row.operator("artistant.floor_pivot", text="Floor Pivot", icon='OBJECT_ORIGIN')
+        # Floor Object: Object mode only
+        row = col.row(align=True)
+        row.enabled = in_object_mode
+        row.operator("artistant.floor_object", text="Floor Object", icon='SORT_ASC')
+
+        col.separator()
+        # Select Orphans: Object mode only
+        row = col.row(align=True)
+        row.enabled = in_object_mode
+        row.operator("artistant.select_orphans", text="Select Orphans", icon='OUTLINER_OB_EMPTY')
+
+        col.separator()
+        # Visualize Normals: Object mode only, and only when objects are selected
+        row = col.row(align=True)
+        row.enabled = in_object_mode and bool(getattr(context, "selected_editable_objects", []))
         row.operator("artistant.visualize_normals", text="Visualize Normals", icon='MOD_NORMALEDIT')
 
         # --- Export Section: Unity FBX Export Pipeline ---
         export_box = layout.box()
         export_box.label(text="Export Unity Asset", icon='EXPORT')
         col = export_box.column(align=True)
+        col.enabled = (context.mode == 'OBJECT')
         # Export destination folder
         col.prop(context.scene, "export_folder")
         # Export mode: individual files per object or batch export
@@ -61,6 +72,7 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         select_box = layout.box()
         select_box.label(text="Select By Name", icon='FILTER')
         col = select_box.column(align=True)
+        col.enabled = (context.mode == 'OBJECT')
         # Name query input field
         col.prop(context.scene, "select_by_name_query", text="Name")
         # Exact match vs contains match toggle

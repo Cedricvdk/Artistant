@@ -12,13 +12,26 @@ class ARTISTANT_OT_floor_pivot(Operator):
     )
     bl_options = {'REGISTER', 'UNDO'}
 
+    @staticmethod
+    def _mode_for_mode_set(context_mode: str) -> str:
+        """Map context.mode values to bpy.ops.object.mode_set(mode=...) values."""
+        if context_mode == 'EDIT_MESH':
+            return 'EDIT'
+        return context_mode
+
     def execute(self, context):
+        starting_mode = context.mode
+        switched_to_object = False
+
         # origin_set requires Object mode
         if context.mode != 'OBJECT':
             bpy.ops.object.mode_set(mode='OBJECT')
+            switched_to_object = True
 
         selected_meshes = [obj for obj in context.selected_objects if obj.type == 'MESH']
         if not selected_meshes:
+            if switched_to_object:
+                bpy.ops.object.mode_set(mode=self._mode_for_mode_set(starting_mode))
             self.report({'WARNING'}, "No mesh objects selected")
             return {'CANCELLED'}
 
@@ -63,6 +76,10 @@ class ARTISTANT_OT_floor_pivot(Operator):
             obj.select_set(True)
         if saved_active and saved_active.name in context.view_layer.objects:
             context.view_layer.objects.active = saved_active
+
+        # Return user to the mode they were in before running the operator
+        if switched_to_object:
+            bpy.ops.object.mode_set(mode=self._mode_for_mode_set(starting_mode))
 
         self.report({'INFO'}, f"Floor pivot applied to {count} object(s)")
         return {'FINISHED'}
