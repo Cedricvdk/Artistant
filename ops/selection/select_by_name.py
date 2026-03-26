@@ -23,34 +23,37 @@ class ARTISTANT_OT_select_by_name(Operator):
     )
 
     def execute(self, context):
+        # Normalize query string
         query = (self.query or "").strip()
         if not query:
             self.report({'WARNING'}, "Please enter a name to search.")
             return {'CANCELLED'}
 
-        # Best effort: switch to OBJECT mode to ensure selection works
+        # Ensure we're in OBJECT mode for reliable selection
         if context.mode != 'OBJECT':
             try:
                 bpy.ops.object.mode_set(mode='OBJECT')
             except Exception:
                 pass
 
-        # Start from a clean selection
+        # Clear the selection before performing the search
         bpy.ops.object.select_all(action='DESELECT')
 
+        # Prepare for case-insensitive search if not exact match
         q_lower = query.lower()
         matches = []
 
-        # Use current view layer objects (respects visibility/collections)
+        # Search through all objects in current view layer
         for obj in context.view_layer.objects:
             name = obj.name
+            # Check if name matches (exact or contains)
             is_match = (name == query) if self.exact else (q_lower in name.lower())
             if is_match:
                 obj.select_set(True)
                 matches.append(obj)
 
+        # Report results and set active object for convenience
         if matches:
-            # Set an active object for convenience
             try:
                 context.view_layer.objects.active = matches[0]
             except Exception:
