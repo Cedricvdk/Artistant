@@ -24,6 +24,16 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         col.operator("artistant.smart_group_operator", text="Smart Group", icon='GROUP')
 
         col.separator()
+        # Floor Pivot: Drop the origin of each selected mesh to its lowest vertex Z
+        col.operator("artistant.floor_pivot", text="Floor Pivot", icon='OBJECT_ORIGIN')
+        # Floor Object: Move each selected object so its origin is at world Z = 0
+        col.operator("artistant.floor_object", text="Floor Object", icon='SORT_ASC')
+
+        col.separator()
+        # Select Orphans: Select objects without parents
+        col.operator("artistant.select_orphans", text="Select Orphans", icon='OUTLINER_OB_EMPTY')
+
+        col.separator()
         # Visualize Normals: Apply geometry nodes to visualize surface normals
         row = col.row(align=True)
         row.enabled = bool(getattr(context, "selected_editable_objects", []))
