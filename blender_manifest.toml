@@ -4,7 +4,7 @@
 schema_version = "1.0.0"
 
 id = "VanderKelen_Cedric_Artistant"
-version = "0.0.1"
+version = "0.2"
 name = "Artistant"
 tagline = "The little assistant for those little game art needs"
 maintainer = "Van der Kelen Cedric <cedric.vdk@hotmail.com>"
@@ -27,12 +27,6 @@ blender_version_min = "4.3.0"
 license = [
   "SPDX:GPL-3.0-or-later",
 ]
-
-# Optional: required by some licenses.
-# copyright = [
-#   "2002-2024 Developer Name",
-#   "1998 Company Name",
-# ]
 
 # Optional list of supported platforms. If omitted, the extension will be available in all operating systems.
 # platforms = ["windows-x64", "macos-arm64", "linux-x64"]
