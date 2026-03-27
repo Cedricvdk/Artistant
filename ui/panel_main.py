@@ -13,7 +13,7 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
     bl_category = 'Artistant'
 
     def draw(self, context):
-        """Draw the panel UI with four main sections: Tools, Export, Select, Utilities."""
+        # Draw the panel UI with four main sections: Tools, Export, Select, Utilities."""
         layout = self.layout
 
         # --- Tools Section: Modeling and Visualization ---
