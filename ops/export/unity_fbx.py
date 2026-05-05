@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import bpy
 from bpy.types import Operator
@@ -7,6 +8,7 @@ from ..common.context_guard import preserve_selection_and_active
 
 ORIGIN_MODE_PRESERVE = "preserve"
 ORIGIN_MODE_ROOTS_TO_ZERO = "roots_to_zero"
+EXPORT_ID_KEY = "_igp_export_id"
 
 
 def _fbx_supported_object_types():
@@ -130,12 +132,85 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
 
         return dups, temp_coll
 
-    def _prepare_duplicates_for_export(self, dups, source_roots, origin_mode=ORIGIN_MODE_PRESERVE):
+    def _assign_export_ids(self, source_objs):
+        """Assign temporary per-object export IDs and return restore metadata."""
+        state = {}
+        for obj in source_objs:
+            had_key = EXPORT_ID_KEY in obj
+            prev_val = obj.get(EXPORT_ID_KEY) if had_key else None
+            obj[EXPORT_ID_KEY] = uuid.uuid4().hex
+            state[obj] = {
+                "had_key": had_key,
+                "prev_val": prev_val,
+            }
+        return state
+
+    def _restore_export_ids(self, export_id_state):
+        """Restore or remove temporary export ID custom properties."""
+        for obj, meta in export_id_state.items():
+            if meta["had_key"]:
+                obj[EXPORT_ID_KEY] = meta["prev_val"]
+            elif EXPORT_ID_KEY in obj:
+                del obj[EXPORT_ID_KEY]
+
+    def _build_source_to_duplicate_map(self, source_objs, dups):
+        """Build exact source->duplicate object mapping via export IDs."""
+        source_by_id = {}
+        for src in source_objs:
+            sid = src.get(EXPORT_ID_KEY)
+            if not sid:
+                raise RuntimeError(f"Missing export ID on source object: {src.name}")
+            if sid in source_by_id:
+                raise RuntimeError(f"Duplicate export ID detected on source objects: {sid}")
+            source_by_id[sid] = src
+
+        source_to_dup = {}
+        for dup in dups:
+            did = dup.get(EXPORT_ID_KEY)
+            if not did:
+                continue
+            src = source_by_id.get(did)
+            if not src:
+                continue
+            if src in source_to_dup:
+                raise RuntimeError(f"Multiple duplicates mapped to source object: {src.name}")
+            source_to_dup[src] = dup
+
+        if len(source_to_dup) != len(source_objs):
+            missing = [src.name for src in source_objs if src not in source_to_dup]
+            raise RuntimeError(f"Failed to map duplicates for source objects: {', '.join(missing)}")
+
+        return source_to_dup
+
+    def _capture_original_names(self, source_objs):
+        """Capture original names for restoration and duplicate rename swap."""
+        return {obj: obj.name for obj in source_objs}
+
+    def _apply_name_swap(self, source_to_dup, original_names):
+        """Temporarily free source names and assign them to duplicates for export."""
+        # Phase 1: move source objects out of the way with guaranteed-unique names.
+        for src in source_to_dup:
+            src.name = f"__IGP_SRC_TMP_{uuid.uuid4().hex}"
+
+        # Phase 2: assign exact original source names to duplicates.
+        for src, dup in source_to_dup.items():
+            dup.name = original_names[src]
+
+    def _release_duplicate_names(self, dups):
+        """Rename duplicates away from source names before restoring source names."""
+        for dup in dups:
+            dup.name = f"__IGP_DUP_TMP_{uuid.uuid4().hex}"
+
+    def _restore_source_names(self, original_names):
+        """Restore source object names exactly to their captured originals."""
+        for src, original_name in original_names.items():
+            src.name = original_name
+
+    def _prepare_duplicates_for_export(self, dups, origin_mode=ORIGIN_MODE_PRESERVE):
         """Prepare duplicates for export.
 
         - Detach duplicate objects that still reference non-export parents while preserving world transforms.
         - Apply origin normalization policy to duplicate roots when requested.
-        - Preserve root naming for single-object exports.
         """
         dup_set = set(dups)
 
@@ -153,10 +228,6 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
         if origin_mode == ORIGIN_MODE_ROOTS_TO_ZERO:
             for root in dup_roots:
                 root.location = (0.0, 0.0, 0.0)
-
-        # Keep exported root naming stable for import pipelines.
-        if len(source_roots) == 1 and len(dup_roots) == 1:
-            dup_roots[0].name = source_roots[0].name
 
     def _cleanup_temp(self, dups, temp_coll):
         """Delete temporary duplicates and remove their collection.
@@ -208,31 +279,54 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
             source_objs: List of objects to duplicate and export
             origin_mode: Origin normalization strategy for duplicate roots
         """
-        # Step 1: Duplicate the source objects into a temporary collection
-        dups, temp_coll = self._duplicate_objects(source_objs)
+        # Step 1: Assign deterministic export IDs to source objects, then duplicate.
+        export_id_state = self._assign_export_ids(source_objs)
+        dups = []
+        temp_coll = None
+        source_to_dup = {}
+        original_names = {}
+        name_swap_active = False
         try:
-            source_roots = _root_objects(source_objs)
-            if not source_roots:
-                source_roots = list(source_objs)
+            dups, temp_coll = self._duplicate_objects(source_objs)
 
-            # Step 2: Prepare duplicates according to mode and restore naming
+            # Step 2: Build source<->duplicate mapping by export IDs.
+            source_to_dup = self._build_source_to_duplicate_map(source_objs, dups)
+            original_names = self._capture_original_names(source_objs)
+
+            # Step 3: Prepare duplicate transforms according to mode.
             self._prepare_duplicates_for_export(
                 dups,
-                source_roots,
                 origin_mode=origin_mode,
             )
 
-            # Step 3: Select duplicates and prepare for export
+            # Step 4: Temporarily swap names so duplicates carry exact source names in FBX.
+            name_swap_active = True
+            self._apply_name_swap(source_to_dup, original_names)
+
+            # Step 5: Select duplicates and prepare for export
             bpy.ops.object.select_all(action='DESELECT')
             for d in dups:
                 d.select_set(True)
             bpy.context.view_layer.objects.active = dups[0]
 
-            # Step 4: Call the FBX exporter
+            # Step 6: Call the FBX exporter while duplicates hold original names.
             self._export_selected_duplicates(export_path)
         finally:
-            # Clean up: delete duplicates and temporary collection
-            self._cleanup_temp(dups, temp_coll)
+            restore_error = None
+            try:
+                # Restore source names even if export failed.
+                if name_swap_active and original_names:
+                    self._release_duplicate_names(dups)
+                    self._restore_source_names(original_names)
+            except Exception as exc:
+                restore_error = exc
+            finally:
+                # Always restore/remove export IDs and cleanup temp duplicates.
+                self._restore_export_ids(export_id_state)
+                self._cleanup_temp(dups, temp_coll)
+
+            if restore_error:
+                raise RuntimeError(f"Critical name-restore failure after export: {restore_error}")
 
     def execute(self, context):
         """Main operator entry point. Exports selected objects as FBX.
