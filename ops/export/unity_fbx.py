@@ -5,6 +5,10 @@ from bpy.types import Operator
 from ..common.context_guard import preserve_selection_and_active
 
 
+ORIGIN_MODE_PRESERVE = "preserve"
+ORIGIN_MODE_ROOTS_TO_ZERO = "roots_to_zero"
+
+
 def _fbx_supported_object_types():
     """Query supported object_types for FBX exporter in this Blender build.
     
@@ -82,8 +86,8 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
             apply_scale_options='FBX_SCALE_UNITS',
             axis_forward='-Z',
             axis_up='Y',
-            use_space_transform=False,
-            bake_space_transform=False,
+            use_space_transform=True,
+            bake_space_transform=True,
             add_leaf_bones=False,
             bake_anim=False,
             use_mesh_modifiers=self.apply_modifiers,
@@ -126,20 +130,29 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
 
         return dups, temp_coll
 
-    def _prepare_duplicates_for_export(self, dups, source_roots):
-        """Rotate duplicate roots for Unity, apply rotation, and preserve root naming."""
+    def _prepare_duplicates_for_export(self, dups, source_roots, origin_mode=ORIGIN_MODE_PRESERVE):
+        """Prepare duplicates for export.
+
+        - Detach duplicate objects that still reference non-export parents while preserving world transforms.
+        - Apply origin normalization policy to duplicate roots when requested.
+        - Preserve root naming for single-object exports.
+        """
+        dup_set = set(dups)
+
+        # Break links to parents outside the duplicate set so exported transforms stay stable.
+        for dup in dups:
+            if dup.parent and dup.parent not in dup_set:
+                world = dup.matrix_world.copy()
+                dup.parent = None
+                dup.matrix_world = world
+
         dup_roots = _root_objects(dups)
         if not dup_roots:
             dup_roots = list(dups)
 
-        bpy.ops.object.select_all(action='DESELECT')
-        for root in dup_roots:
-            root.rotation_mode = 'XYZ'
-            root.rotation_euler.x += -1.5707963267948966
-            root.select_set(True)
-
-        bpy.context.view_layer.objects.active = dup_roots[0]
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+        if origin_mode == ORIGIN_MODE_ROOTS_TO_ZERO:
+            for root in dup_roots:
+                root.location = (0.0, 0.0, 0.0)
 
         # Keep exported root naming stable for import pipelines.
         if len(source_roots) == 1 and len(dup_roots) == 1:
@@ -187,12 +200,13 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
             stack.extend(list(o.children))
         return out
 
-    def _export_duplicate_set(self, *, export_path: str, source_objs):
-        """Execute the core export pipeline: duplicate → rotate/apply → export.
+    def _export_duplicate_set(self, *, export_path: str, source_objs, origin_mode=ORIGIN_MODE_PRESERVE):
+        """Execute the core export pipeline: duplicate -> prepare -> export.
         
         Args:
             export_path: Full file path for the output FBX
             source_objs: List of objects to duplicate and export
+            origin_mode: Origin normalization strategy for duplicate roots
         """
         # Step 1: Duplicate the source objects into a temporary collection
         dups, temp_coll = self._duplicate_objects(source_objs)
@@ -201,8 +215,12 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
             if not source_roots:
                 source_roots = list(source_objs)
 
-            # Step 2: Rotate duplicate root(s), apply rotation, and restore root naming
-            self._prepare_duplicates_for_export(dups, source_roots)
+            # Step 2: Prepare duplicates according to mode and restore naming
+            self._prepare_duplicates_for_export(
+                dups,
+                source_roots,
+                origin_mode=origin_mode,
+            )
 
             # Step 3: Select duplicates and prepare for export
             bpy.ops.object.select_all(action='DESELECT')
@@ -220,9 +238,9 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
         """Main operator entry point. Exports selected objects as FBX.
         
         Supports three modes:
-        - Batch: All selected objects exported to one FBX
-        - Individual (all selected): each selected object exported alone (no children)
-        - Individual (only orphans): each orphan exported with its full hierarchy
+        - Batch: all selected objects exported to one FBX with world transforms preserved
+        - Individual (all selected): each selected object exported alone, normalized to origin
+        - Individual (only orphans): each orphan exported with full hierarchy and root at origin
         """
         # Gather selected objects (excluding hidden ones)
         selected_objects = [o for o in context.selected_objects if o.visible_get()]
@@ -239,6 +257,15 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
         # Check if we should export each object individually or as a batch
         export_individual = context.scene.export_individual
         export_only_orphans = getattr(context.scene, "export_only_orphans", False)
+
+        selected_set = set(selected_objects)
+        external_parented = [o for o in selected_objects if o.parent and o.parent not in selected_set]
+        if external_parented:
+            self.report(
+                {'WARNING'},
+                "Some selected objects have unselected parents; export keeps world transforms and detaches those links in output.",
+            )
+
         # Determine which object to use as the default filename anchor
         active = context.view_layer.objects.active
         anchor = active if active and active in selected_objects else selected_objects[0]
@@ -266,6 +293,7 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
                             self._export_duplicate_set(
                                 export_path=export_path,
                                 source_objs=source_objs,
+                                origin_mode=ORIGIN_MODE_ROOTS_TO_ZERO,
                             )
                             exported_paths.append(export_path)
                     else:
@@ -276,6 +304,7 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
                             self._export_duplicate_set(
                                 export_path=export_path,
                                 source_objs=[src_obj],
+                                origin_mode=ORIGIN_MODE_ROOTS_TO_ZERO,
                             )
                             exported_paths.append(export_path)
                 else:
@@ -285,6 +314,7 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
                     self._export_duplicate_set(
                         export_path=export_path,
                         source_objs=selected_objects,
+                        origin_mode=ORIGIN_MODE_PRESERVE,
                     )
                     exported_paths.append(export_path)
 

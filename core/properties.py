@@ -37,7 +37,7 @@ def register_scene_properties():
         EXPORT_ONLY_ORPHANS_PROP,
         bpy.props.BoolProperty(
             name="Only Orphans",
-            description="When enabled, only objects without parents are exported, each with their full hierarchy.",
+            description="Individual mode only: export only parentless roots with full hierarchies and place each exported root at (0,0,0). When disabled, each selected object exports separately at (0,0,0).",
             default=False
         ),
     )

@@ -61,7 +61,7 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         # Optional individual mode behavior: export only orphan roots with full hierarchies
         orphan_row = col.row(align=True)
         orphan_row.enabled = context.scene.export_individual
-        orphan_row.prop(context.scene, "export_only_orphans")
+        orphan_row.prop(context.scene, "export_only_orphans", text="Only Orphans (Root at 0,0,0)")
         # Main export operator
         col.operator("artistant.export_unity_fbx", text="Export to FBX", icon='FILE_FOLDER')
 
