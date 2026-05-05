@@ -5,6 +5,7 @@ from ..ui.panel_main import ARTISTANT_PT_panel
 from ..ops.modeling.smart_group import ARTISTANT_OT_smart_group_operator
 from ..ops.modeling.floor_pivot import ARTISTANT_OT_floor_pivot
 from ..ops.modeling.floor_object import ARTISTANT_OT_floor_object
+from ..ops.modeling.generate_collider import ARTISTANT_OT_generate_collider
 from ..ops.export.unity_fbx import ARTISTANT_OT_export_unity_fbx
 from ..ops.util.reload_images import ARTISTANT_OT_reload_images
 from ..ops.visualization.visualize_normals import ARTISTANT_OT_visualize_normals
@@ -19,6 +20,7 @@ classes = (
     ARTISTANT_OT_smart_group_operator,
     ARTISTANT_OT_floor_pivot,
     ARTISTANT_OT_floor_object,
+    ARTISTANT_OT_generate_collider,
     ARTISTANT_OT_export_unity_fbx,
     ARTISTANT_OT_reload_images,
     ARTISTANT_OT_visualize_normals,

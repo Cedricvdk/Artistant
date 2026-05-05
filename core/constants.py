@@ -5,6 +5,7 @@
 EXPORT_FOLDER_PROP = "export_folder"
 EXPORT_INDIVIDUAL_PROP = "export_individual"
 EXPORT_ONLY_ORPHANS_PROP = "export_only_orphans"
+COLLIDER_TYPE_PROP = "collider_type"
 
 # Select by Name operator scene properties
 SELECT_BY_NAME_QUERY_PROP = "select_by_name_query"

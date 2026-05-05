@@ -5,6 +5,7 @@ from .constants import (
     EXPORT_FOLDER_PROP,
     EXPORT_INDIVIDUAL_PROP,
     EXPORT_ONLY_ORPHANS_PROP,
+    COLLIDER_TYPE_PROP,
     SELECT_BY_NAME_QUERY_PROP,
     SELECT_BY_NAME_EXACT_PROP,
 )
@@ -41,6 +42,19 @@ def register_scene_properties():
             default=False
         ),
     )
+    # Collider settings: collider generation type (future-proof enum)
+    setattr(
+        bpy.types.Scene,
+        COLLIDER_TYPE_PROP,
+        bpy.props.EnumProperty(
+            name="Type",
+            description="Collider generation type",
+            items=[
+                ('BOX', "Box", "Create an axis-aligned box collider from object bounds"),
+            ],
+            default='BOX'
+        ),
+    )
     # Selection settings: query string for "Select by Name" operator
     setattr(
         bpy.types.Scene,
@@ -70,6 +84,7 @@ def unregister_scene_properties():
         EXPORT_FOLDER_PROP,
         EXPORT_INDIVIDUAL_PROP,
         EXPORT_ONLY_ORPHANS_PROP,
+        COLLIDER_TYPE_PROP,
         SELECT_BY_NAME_QUERY_PROP,
         SELECT_BY_NAME_EXACT_PROP,
     ):

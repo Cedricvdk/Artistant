@@ -49,6 +49,14 @@ class ARTISTANT_PT_panel(bpy.types.Panel):
         row.enabled = in_object_mode and bool(getattr(context, "selected_editable_objects", []))
         row.operator("artistant.visualize_normals", text="Visualize Normals", icon='MOD_NORMALEDIT')
 
+        # --- Collider Section: Collider Mesh Generation ---
+        collider_box = layout.box()
+        collider_box.label(text="Collider", icon='MESH_CUBE')
+        col = collider_box.column(align=True)
+        col.enabled = in_object_mode
+        col.prop(context.scene, "collider_type", text="Type")
+        col.operator("artistant.generate_collider", text="Add Collider", icon='MOD_PHYSICS')
+
         # --- Export Section: Unity FBX Export Pipeline ---
         export_box = layout.box()
         export_box.label(text="Export Unity Asset", icon='EXPORT')
