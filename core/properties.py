@@ -5,8 +5,6 @@ from .constants import (
     EXPORT_FOLDER_PROP,
     EXPORT_INDIVIDUAL_PROP,
     EXPORT_ONLY_ORPHANS_PROP,
-    EXPORT_FBX_MODE_PROP,
-    EXPORT_RESET_LOCATION_PROP,
     SELECT_BY_NAME_QUERY_PROP,
     SELECT_BY_NAME_EXACT_PROP,
 )
@@ -39,31 +37,7 @@ def register_scene_properties():
         EXPORT_ONLY_ORPHANS_PROP,
         bpy.props.BoolProperty(
             name="Only Orphans",
-            description="When enabled, only orphan objects are exported, each with their full hierarchy.",
-            default=False
-        ),
-    )
-    # Export settings: Unity export mode (kept for backward compatibility but no longer used)
-    setattr(
-        bpy.types.Scene,
-        EXPORT_FBX_MODE_PROP,
-        bpy.props.EnumProperty(
-            name="Unity Export Mode",
-            items=[
-                ('AUTO', "Auto", "Detect rigs/hierarchies and choose best mode"),
-                ('SIMPLE', "Simple (fast)", "Use Apply Transform on export"),
-                ('HSAFE', "Hierarchy-safe (slow)", "Duplicate + counter-rotate + export"),
-            ],
-            default='AUTO'
-        ),
-    )
-    # Export settings: reset root object location to origin after export
-    setattr(
-        bpy.types.Scene,
-        EXPORT_RESET_LOCATION_PROP,
-        bpy.props.BoolProperty(
-            name="Reset Root Location",
-            description="Force exported root(s) to have Location (0,0,0)",
+            description="When enabled, only objects without parents are exported, each with their full hierarchy.",
             default=False
         ),
     )
@@ -96,8 +70,6 @@ def unregister_scene_properties():
         EXPORT_FOLDER_PROP,
         EXPORT_INDIVIDUAL_PROP,
         EXPORT_ONLY_ORPHANS_PROP,
-        EXPORT_FBX_MODE_PROP,
-        EXPORT_RESET_LOCATION_PROP,
         SELECT_BY_NAME_QUERY_PROP,
         SELECT_BY_NAME_EXACT_PROP,
     ):

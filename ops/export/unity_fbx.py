@@ -62,12 +62,6 @@ class ARTISTANT_OT_export_unity_fbx(Operator):
     bl_label = "Export Unity Asset"
     bl_options = {'REGISTER', 'UNDO'}
 
-    reset_location: bpy.props.BoolProperty(
-        name="Reset Root Location (0,0,0)",
-        description="Force exported root(s) to have Location (0,0,0). Children keep relative offsets",
-        default=False,
-    )
-
     apply_modifiers: bpy.props.BoolProperty(
         name="Apply Modifiers",
         default=True,
