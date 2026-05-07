@@ -51,6 +51,9 @@ def register_scene_properties():
             description="Collider generation type",
             items=[
                 ('BOX', "Box", "Create an axis-aligned box collider from object bounds"),
+                ('SPHERE', "Sphere", "Create a sphere collider from object bounds center and enclosing radius"),
+                ('MESH', "Mesh", "Duplicate the active mesh and use it as collider"),
+                ('CONVEX_HULL', "Convex Hull", "Create a convex hull collider from duplicated mesh geometry"),
             ],
             default='BOX'
         ),
