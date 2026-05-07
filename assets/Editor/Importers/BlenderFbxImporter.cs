@@ -65,14 +65,29 @@ public sealed class BlenderFbxImporter : AssetPostprocessor
 		GameObject instance = UnityEngine.Object.Instantiate(fbxRoot);
 		instance.name = prefabName;
 
+		// Convert model prefab instance to plain GameObjects before structural edits.
+		// This avoids overwrite edge-cases when saving to an already existing prefab asset.
+		if (PrefabUtility.IsPartOfPrefabInstance(instance))
+		{
+			PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+		}
+
 		try
 		{
 			ApplyColliderRules(instance, colliderMeshes);
-			PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
+			bool savedSuccessfully;
+			PrefabUtility.SaveAsPrefabAsset(instance, prefabPath, out savedSuccessfully);
+			if (!savedSuccessfully)
+			{
+				Debug.LogError($"[BlenderFbxImporter] Failed to save prefab at '{prefabPath}' for source '{fbxPath}'.");
+			}
 		}
 		finally
 		{
-			UnityEngine.Object.DestroyImmediate(instance);
+			if (instance != null)
+			{
+				UnityEngine.Object.DestroyImmediate(instance);
+			}
 		}
 	}
 
@@ -108,12 +123,18 @@ public sealed class BlenderFbxImporter : AssetPostprocessor
 			// Add the MeshCollider to the prefab root with the real, persisted mesh asset reference.
 			MeshCollider meshCollider = prefabRoot.AddComponent<MeshCollider>();
 			meshCollider.sharedMesh = colliderMesh;
-			meshCollider.convex = true;
+			meshCollider.convex = false;
 		}
 
 		// All colliders assigned — now safe to remove the source nodes from the hierarchy.
 		foreach (GameObject node in nodesToDestroy)
 		{
+			if (node == prefabRoot)
+			{
+				Debug.LogWarning($"[BlenderFbxImporter] Skipped destroying prefab root '{prefabRoot.name}' while applying collider rules.");
+				continue;
+			}
+
 			UnityEngine.Object.DestroyImmediate(node);
 		}
 	}
