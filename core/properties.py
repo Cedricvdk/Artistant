@@ -7,6 +7,15 @@ from .constants import (
     EXPORT_ONLY_ORPHANS_PROP,
     SELECT_BY_NAME_QUERY_PROP,
     SELECT_BY_NAME_EXACT_PROP,
+    BAKE_AO_SIZE_PROP,
+    BAKE_AO_SAMPLES_PROP,
+    BAKE_AO_MARGIN_PROP,
+)
+
+# Texture sizes offered for AO baking, from 128px up to 4096px
+_BAKE_SIZE_ITEMS = tuple(
+    (str(size), f"{size} x {size}", f"Bake at {size} x {size} px")
+    for size in (128, 256, 512, 1024, 2048, 4096)
 )
 
 
@@ -61,6 +70,41 @@ def register_scene_properties():
             default=False
         ),
     )
+    # Bake settings: output texture size for AO bakes
+    setattr(
+        bpy.types.Scene,
+        BAKE_AO_SIZE_PROP,
+        bpy.props.EnumProperty(
+            name="Size",
+            description="Resolution of the baked AO texture",
+            items=_BAKE_SIZE_ITEMS,
+            default="1024",
+        ),
+    )
+    # Bake settings: render samples used for the AO bake
+    setattr(
+        bpy.types.Scene,
+        BAKE_AO_SAMPLES_PROP,
+        bpy.props.IntProperty(
+            name="Samples",
+            description="Number of render samples used for the AO bake",
+            default=32,
+            min=1,
+            soft_max=512,
+        ),
+    )
+    # Bake settings: padding (in pixels) around baked UV islands
+    setattr(
+        bpy.types.Scene,
+        BAKE_AO_MARGIN_PROP,
+        bpy.props.IntProperty(
+            name="Margin",
+            description="Padding, in pixels, added around each UV island to avoid seams/bleeding",
+            default=16,
+            min=0,
+            soft_max=64,
+        ),
+    )
 
 
 def unregister_scene_properties():
@@ -72,6 +116,9 @@ def unregister_scene_properties():
         EXPORT_ONLY_ORPHANS_PROP,
         SELECT_BY_NAME_QUERY_PROP,
         SELECT_BY_NAME_EXACT_PROP,
+        BAKE_AO_SIZE_PROP,
+        BAKE_AO_SAMPLES_PROP,
+        BAKE_AO_MARGIN_PROP,
     ):
         if hasattr(bpy.types.Scene, prop_name):
             delattr(bpy.types.Scene, prop_name)

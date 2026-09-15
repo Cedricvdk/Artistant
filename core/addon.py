@@ -2,6 +2,7 @@ import bpy
 
 # Import all operator and UI classes to register
 from ..ui.panel_main import ARTISTANT_PT_panel
+from ..ui.panel_uv import ARTISTANT_PT_uv_panel
 from ..ops.modeling.smart_group import ARTISTANT_OT_smart_group_operator
 from ..ops.modeling.floor_pivot import ARTISTANT_OT_floor_pivot
 from ..ops.modeling.floor_object import ARTISTANT_OT_floor_object
@@ -10,12 +11,15 @@ from ..ops.util.reload_images import ARTISTANT_OT_reload_images
 from ..ops.visualization.visualize_normals import ARTISTANT_OT_visualize_normals
 from ..ops.selection.select_by_name import ARTISTANT_OT_select_by_name
 from ..ops.selection.select_orphans import ARTISTANT_OT_select_orphans
+from ..ops.bake.bake_ao import ARTISTANT_OT_bake_ao
+from ..ops.bake.preview_shading import ARTISTANT_OT_preview_bake
 from .properties import register_scene_properties, unregister_scene_properties
 
 
 # Central registry of all classes to be registered with Blender
 classes = (
     ARTISTANT_PT_panel,
+    ARTISTANT_PT_uv_panel,
     ARTISTANT_OT_smart_group_operator,
     ARTISTANT_OT_floor_pivot,
     ARTISTANT_OT_floor_object,
@@ -24,6 +28,8 @@ classes = (
     ARTISTANT_OT_visualize_normals,
     ARTISTANT_OT_select_by_name,
     ARTISTANT_OT_select_orphans,
+    ARTISTANT_OT_bake_ao,
+    ARTISTANT_OT_preview_bake,
 )
 
 

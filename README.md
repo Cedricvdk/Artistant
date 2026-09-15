@@ -57,6 +57,21 @@ When disabled, exports each selected object as its own FBX (without automaticall
 - **Reload Images**
 Reloads all images in the current Blender file from disk.
 
+### Bake (UV/Image Editor)
+
+- **Panel Location**: UV/Image Editor -> N-panel -> Artistant
+
+- **Bake AO**
+Bakes an Ambient Occlusion texture for each selected mesh object. Select object(s) in the 3D Viewport, then press Bake AO from the UV/Image Editor sidebar.
+  - Creates one `<ObjectName>_AO` image per object (replacing any previous bake of the same name) at the chosen **Size**, using the chosen **Samples** and **Margin** (padding, in pixels, added around each UV island to avoid seams/bleeding).
+  - Adds a dedicated, unconnected Image Texture node to each of the object's materials (creating a default material first if it has none) so the bake target is set up automatically; the node is not wired into the shader.
+  - Temporarily switches the render engine to Cycles for the bake and restores the original engine and sample count afterward.
+  - Objects without a UV map are skipped with a warning. The baked image is not written to disk automatically — save or pack it manually once you're happy with the result.
+  - Shows Blender's native bake progress for each object, plus an across-objects progress indicator when baking multiple selected objects in one go.
+
+- **Preview**
+Switches every open 3D Viewport to Solid shading / Texture color / Flat lighting, so the baked texture (via its material's active image node) displays directly on the mesh without needing to wire it into the shader.
+
 ## Mode-Aware UI Behavior
 
 - Object-mode only buttons are automatically disabled outside Object Mode.

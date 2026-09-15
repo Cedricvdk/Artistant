@@ -9,3 +9,8 @@ EXPORT_ONLY_ORPHANS_PROP = "export_only_orphans"
 # Select by Name operator scene properties
 SELECT_BY_NAME_QUERY_PROP = "select_by_name_query"
 SELECT_BY_NAME_EXACT_PROP = "select_by_name_exact"
+
+# Bake AO operator scene properties
+BAKE_AO_SIZE_PROP = "bake_ao_size"
+BAKE_AO_SAMPLES_PROP = "bake_ao_samples"
+BAKE_AO_MARGIN_PROP = "bake_ao_margin"
