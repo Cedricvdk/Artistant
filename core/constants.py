@@ -10,7 +10,10 @@ EXPORT_ONLY_ORPHANS_PROP = "export_only_orphans"
 SELECT_BY_NAME_QUERY_PROP = "select_by_name_query"
 SELECT_BY_NAME_EXACT_PROP = "select_by_name_exact"
 
-# Bake AO operator scene properties
-BAKE_AO_SIZE_PROP = "bake_ao_size"
-BAKE_AO_SAMPLES_PROP = "bake_ao_samples"
-BAKE_AO_MARGIN_PROP = "bake_ao_margin"
+# Bake operator scene properties
+BAKE_MAP_TYPE_PROP = "bake_map_type"
+BAKE_SIZE_PROP = "bake_size"
+BAKE_SAMPLES_PROP = "bake_samples"
+BAKE_MARGIN_PROP = "bake_margin"
+BAKE_TEXTURE_LIST_PROP = "bake_texture_list"
+BAKE_TEXTURE_LIST_INDEX_PROP = "bake_texture_list_index"

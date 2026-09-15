@@ -15,8 +15,20 @@ class ARTISTANT_PT_uv_panel(bpy.types.Panel):
         bake_box = layout.box()
         bake_box.label(text="Bake", icon='RENDER_STILL')
         col = bake_box.column(align=True)
-        col.prop(context.scene, "bake_ao_size", text="Size")
-        col.prop(context.scene, "bake_ao_samples", text="Samples")
-        col.prop(context.scene, "bake_ao_margin", text="Margin")
-        col.operator("artistant.bake_ao", text="Bake AO", icon='SHADING_RENDERED')
-        col.operator("artistant.preview_bake", text="Preview", icon='SHADING_TEXTURE')
+        col.prop(context.scene, "bake_map_type", text="Map")
+        col.prop(context.scene, "bake_size", text="Size")
+        col.prop(context.scene, "bake_samples", text="Samples")
+        col.prop(context.scene, "bake_margin", text="Margin")
+        col.operator("artistant.bake", text="Bake", icon='SHADING_RENDERED')
+
+        bake_box.separator()
+        list_header = bake_box.row(align=True)
+        list_header.label(text="Textures")
+        list_header.operator("artistant.refresh_bake_texture_list", text="", icon='FILE_REFRESH')
+        bake_box.template_list(
+            "ARTISTANT_UL_bake_textures", "",
+            context.scene, "bake_texture_list",
+            context.scene, "bake_texture_list_index",
+            rows=4,
+        )
+        bake_box.operator("artistant.preview_bake", text="Preview", icon='SHADING_TEXTURE')

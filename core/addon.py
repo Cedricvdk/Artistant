@@ -11,8 +11,15 @@ from ..ops.util.reload_images import ARTISTANT_OT_reload_images
 from ..ops.visualization.visualize_normals import ARTISTANT_OT_visualize_normals
 from ..ops.selection.select_by_name import ARTISTANT_OT_select_by_name
 from ..ops.selection.select_orphans import ARTISTANT_OT_select_orphans
-from ..ops.bake.bake_ao import ARTISTANT_OT_bake_ao
+from ..ops.bake.bake import ARTISTANT_OT_bake
 from ..ops.bake.preview_shading import ARTISTANT_OT_preview_bake
+from ..ops.bake.texture_list import (
+    ARTISTANT_texture_list_item,
+    ARTISTANT_UL_bake_textures,
+    ARTISTANT_OT_refresh_bake_texture_list,
+    register_active_object_watcher,
+    unregister_active_object_watcher,
+)
 from .properties import register_scene_properties, unregister_scene_properties
 
 
@@ -28,8 +35,11 @@ classes = (
     ARTISTANT_OT_visualize_normals,
     ARTISTANT_OT_select_by_name,
     ARTISTANT_OT_select_orphans,
-    ARTISTANT_OT_bake_ao,
+    ARTISTANT_texture_list_item,
+    ARTISTANT_UL_bake_textures,
+    ARTISTANT_OT_bake,
     ARTISTANT_OT_preview_bake,
+    ARTISTANT_OT_refresh_bake_texture_list,
 )
 
 
@@ -40,11 +50,15 @@ def register():
         bpy.utils.register_class(cls)
     # Register custom scene properties (export folder, export mode, etc.)
     register_scene_properties()
+    # Keep the bake texture list in sync with the active object (see
+    # ops/bake/texture_list.py for why this can't just happen in Panel.draw()).
+    register_active_object_watcher()
 
 
 def unregister():
     """Unregister all scene properties and operator/panel classes from Blender."""
-    # Unregister in reverse order: properties first, then classes
+    # Unregister in reverse order: watcher and properties first, then classes
+    unregister_active_object_watcher()
     unregister_scene_properties()
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
