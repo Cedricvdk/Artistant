@@ -120,27 +120,19 @@ class ARTISTANT_OT_bake_ao(Operator):
         baked = []
         failed = []
 
-        # Per-bake sample progress is already shown natively by Blender's own
-        # job status bar. This just adds an across-objects progress indicator
-        # for multi-object batches (wm.progress_* is a thin, built-in API).
-        wm = context.window_manager
-        wm.progress_begin(0, len(objects_to_bake))
-
         try:
             context.scene.render.engine = 'CYCLES'
             context.scene.cycles.samples = samples
             context.scene.render.bake.margin = margin
 
             with preserve_selection_and_active(context):
-                for index, obj in enumerate(objects_to_bake):
+                for obj in objects_to_bake:
                     try:
                         self._bake_object_ao(context, obj, size)
                         baked.append(obj.name)
                     except Exception as e:
                         failed.append(f"{obj.name} ({e})")
-                    wm.progress_update(index + 1)
         finally:
-            wm.progress_end()
             context.scene.render.engine = original_engine
             context.scene.cycles.samples = original_samples
             context.scene.render.bake.margin = original_margin
