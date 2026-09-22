@@ -85,7 +85,13 @@ def _redraw_image_editors():
 
 
 def _on_active_object_changed():
-    sync_bake_texture_list(bpy.context)
+    context = bpy.context
+    # Guards against bpy.context still being Blender's restricted startup
+    # stand-in (no .scene) when this fires very early, e.g. via the initial
+    # timer call below during addon registration.
+    if getattr(context, "scene", None) is None:
+        return
+    sync_bake_texture_list(context)
     _redraw_image_editors()
 
 
@@ -97,8 +103,15 @@ def register_active_object_watcher():
         notify=_on_active_object_changed,
         options={'PERSISTENT'},
     )
-    _on_active_object_changed()
+    # register() can run before bpy.context is fully valid (e.g. during
+    # Blender startup, where context.scene doesn't exist yet); defer the
+    # initial sync to the next event-loop tick where it will be.
+    bpy.app.timers.register(_on_active_object_changed, first_interval=0.0)
 
 
 def unregister_active_object_watcher():
     bpy.msgbus.clear_by_owner(_msgbus_owner)
+    # In case the addon is disabled again before the deferred initial sync
+    # (registered above) has had a chance to fire.
+    if bpy.app.timers.is_registered(_on_active_object_changed):
+        bpy.app.timers.unregister(_on_active_object_changed)
