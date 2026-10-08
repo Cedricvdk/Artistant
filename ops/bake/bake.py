@@ -105,9 +105,9 @@ class ARTISTANT_OT_bake(Operator):
             obj.data.materials[0] = mat
         return [mat]
 
-    def _create_bake_image(self, obj, size, map_type):
-        """Create a fresh image for obj/map_type, replacing any previous bake of the same name."""
-        image_name = f"{obj.name}_{IMAGE_SUFFIX[map_type]}"
+    def _create_bake_image(self, base_name, size, map_type):
+        """Create a fresh image for base_name/map_type, replacing any previous bake of the same name."""
+        image_name = f"{base_name}_{IMAGE_SUFFIX[map_type]}"
         existing = bpy.data.images.get(image_name)
         if existing is not None:
             bpy.data.images.remove(existing)
@@ -216,13 +216,15 @@ class ARTISTANT_OT_bake(Operator):
 
         return teardown
 
-    def _bake_object(self, context, obj, size, map_type):
+    def _bake_object(self, context, obj, image, map_type, clear=True):
+        """Bake obj into image. With clear=False the existing image content is
+        kept, which is how several objects accumulate into one shared image.
+        """
         bpy.ops.object.select_all(action='DESELECT')
         obj.select_set(True)
         context.view_layer.objects.active = obj
 
         materials = self._ensure_object_materials(obj)
-        image = self._create_bake_image(obj, size, map_type)
 
         teardowns = []
         try:
@@ -236,7 +238,7 @@ class ARTISTANT_OT_bake(Operator):
                 for mat in materials:
                     teardowns.append(self._prepare_mesh_id_material(mat))
 
-            result = bpy.ops.object.bake(type=CYCLES_BAKE_TYPE[map_type])
+            result = bpy.ops.object.bake(type=CYCLES_BAKE_TYPE[map_type], use_clear=clear)
             if 'FINISHED' not in result:
                 raise RuntimeError("bake operator did not finish (see console for details)")
         finally:
@@ -261,6 +263,7 @@ class ARTISTANT_OT_bake(Operator):
         size = int(context.scene.bake_size)
         samples = context.scene.bake_samples
         margin = context.scene.bake_margin
+        combine = context.scene.bake_combine
 
         starting_mode = context.mode
         switched_to_object = False
@@ -281,9 +284,22 @@ class ARTISTANT_OT_bake(Operator):
             context.scene.render.bake.margin = margin
 
             with preserve_selection_and_active(context):
+                # Combined: one shared image; only the first successful bake
+                # clears it, so later objects add to it. Every object stays in
+                # the scene, so they (and floors etc.) still occlude each other.
+                shared_image = None
+                if combine:
+                    active = context.view_layer.objects.active
+                    name_source = active if active in objects_to_bake else objects_to_bake[0]
+                    shared_image = self._create_bake_image(f"{name_source.name}_Combined", size, map_type)
+
                 for obj in objects_to_bake:
                     try:
-                        self._bake_object(context, obj, size, map_type)
+                        if combine:
+                            self._bake_object(context, obj, shared_image, map_type, clear=not baked)
+                        else:
+                            image = self._create_bake_image(obj.name, size, map_type)
+                            self._bake_object(context, obj, image, map_type)
                         baked.append(obj.name)
                     except Exception as e:
                         failed.append(f"{obj.name} ({e})")
@@ -298,7 +314,8 @@ class ARTISTANT_OT_bake(Operator):
             self.report({'WARNING'}, f"Skipped (no UV map): {', '.join(missing_uv)}")
 
         if baked and not failed:
-            self.report({'INFO'}, f"Baked {len(baked)} object(s)")
+            suffix = " into one combined image" if combine else ""
+            self.report({'INFO'}, f"Baked {len(baked)} object(s){suffix}")
             return {'FINISHED'}
         elif baked and failed:
             self.report({'WARNING'}, f"Baked {len(baked)} object(s); failed: {', '.join(failed)}")

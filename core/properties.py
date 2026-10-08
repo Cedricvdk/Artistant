@@ -11,6 +11,7 @@ from .constants import (
     BAKE_SIZE_PROP,
     BAKE_SAMPLES_PROP,
     BAKE_MARGIN_PROP,
+    BAKE_COMBINE_PROP,
     BAKE_TEXTURE_LIST_PROP,
     BAKE_TEXTURE_LIST_INDEX_PROP,
 )
@@ -127,6 +128,16 @@ def register_scene_properties():
             soft_max=64,
         ),
     )
+    # Bake settings: bake all selected objects into one shared image
+    setattr(
+        bpy.types.Scene,
+        BAKE_COMBINE_PROP,
+        bpy.props.BoolProperty(
+            name="Combine Bakes",
+            description="Bake all selected objects into a single image (for objects that share one UV layout) instead of one image per object",
+            default=False,
+        ),
+    )
     # Bake settings: scrollable list of image textures found on the active object,
     # kept in sync with the node graph by ui/panel_uv.py each redraw.
     setattr(
@@ -157,6 +168,7 @@ def unregister_scene_properties():
         BAKE_SIZE_PROP,
         BAKE_SAMPLES_PROP,
         BAKE_MARGIN_PROP,
+        BAKE_COMBINE_PROP,
         BAKE_TEXTURE_LIST_PROP,
         BAKE_TEXTURE_LIST_INDEX_PROP,
     ):

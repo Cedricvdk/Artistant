@@ -20,6 +20,7 @@ class ARTISTANT_PT_uv_panel(bpy.types.Panel):
         col.prop(context.scene, "bake_samples", text="Samples")
         col.prop(context.scene, "bake_margin", text="Margin")
         col.operator("artistant.bake", text="Bake", icon='SHADING_RENDERED')
+        col.prop(context.scene, "bake_combine")
 
         bake_box.separator()
         list_header = bake_box.row(align=True)
