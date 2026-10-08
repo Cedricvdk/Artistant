@@ -16,6 +16,7 @@ from .constants import (
     BAKE_TEXTURE_LIST_INDEX_PROP,
 )
 from ..ops.bake.texture_list import ARTISTANT_texture_list_item
+from ..ops.bake.thumbnails import bake_map_type_items
 
 # Texture sizes offered for baking, from 128px up to 4096px
 _BAKE_SIZE_ITEMS = tuple(
@@ -23,12 +24,6 @@ _BAKE_SIZE_ITEMS = tuple(
     for size in (128, 256, 512, 1024, 2048, 4096)
 )
 
-# Map types the Bake operator supports. Kept short on purpose: each entry
-# needs matching setup logic in ops/bake/bake.py.
-_BAKE_MAP_TYPE_ITEMS = (
-    ('AO', "Ambient Occlusion", "Bake ambient occlusion shading into a texture"),
-    ('MESH_ID', "Mesh ID", "Bake a distinct color per connected mesh part (loose part); useful as an object/part mask"),
-)
 
 
 def register_scene_properties():
@@ -89,8 +84,7 @@ def register_scene_properties():
         bpy.props.EnumProperty(
             name="Map",
             description="Which texture map to bake",
-            items=_BAKE_MAP_TYPE_ITEMS,
-            default='AO',
+            items=bake_map_type_items,
         ),
     )
     # Bake settings: output texture size

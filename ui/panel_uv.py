@@ -14,8 +14,10 @@ class ARTISTANT_PT_uv_panel(bpy.types.Panel):
 
         bake_box = layout.box()
         bake_box.label(text="Bake", icon='RENDER_STILL')
+        bake_box.template_icon_view(
+            context.scene, "bake_map_type", show_labels=True, scale=6, scale_popup=5
+        )
         col = bake_box.column(align=True)
-        col.prop(context.scene, "bake_map_type", text="Map")
         col.prop(context.scene, "bake_size", text="Size")
         col.prop(context.scene, "bake_samples", text="Samples")
         col.prop(context.scene, "bake_margin", text="Margin")

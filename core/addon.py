@@ -20,6 +20,7 @@ from ..ops.bake.texture_list import (
     register_active_object_watcher,
     unregister_active_object_watcher,
 )
+from ..ops.bake.thumbnails import register_thumbnails, unregister_thumbnails
 from .properties import register_scene_properties, unregister_scene_properties
 
 
@@ -48,6 +49,8 @@ def register():
     # Register operator and panel classes with Blender's registration system
     for cls in classes:
         bpy.utils.register_class(cls)
+    # Thumbnails must exist before the properties whose enum items use them.
+    register_thumbnails()
     # Register custom scene properties (export folder, export mode, etc.)
     register_scene_properties()
     # Keep the bake texture list in sync with the active object (see
@@ -60,5 +63,6 @@ def unregister():
     # Unregister in reverse order: watcher and properties first, then classes
     unregister_active_object_watcher()
     unregister_scene_properties()
+    unregister_thumbnails()
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

@@ -62,7 +62,7 @@ Reloads all images in the current Blender file from disk.
 - **Panel Location**: UV/Image Editor -> N-panel -> Artistant
 
 - **Map**
-Choose which texture map to bake:
+Choose which texture map to bake from a thumbnail picker (click the preview to open the grid). Thumbnails live in `assets/thumbnails/bake_<map>.png` (`bake_ao.png`, `bake_mesh_id.png`); replace them to change the artwork. A missing file just shows the entry without a thumbnail.
   - **Ambient Occlusion** — standard AO shading baked into a texture.
   - **Mesh ID** — a distinct, deterministic color baked per connected mesh part ("loose part": geometry sharing no edge/vertex with the rest, even within the same mesh), useful as an object/part mask.
 
