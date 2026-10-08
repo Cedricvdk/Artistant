@@ -65,6 +65,8 @@ Reloads all images in the current Blender file from disk.
 Choose which texture map to bake from a thumbnail picker (click the preview to open the grid). Thumbnails live in `assets/thumbnails/bake_<map>.png` (`bake_ao.png`, `bake_mesh_id.png`); replace them to change the artwork. A missing file just shows the entry without a thumbnail.
   - **Ambient Occlusion** — standard AO shading baked into a texture.
   - **Mesh ID** — a distinct, deterministic color baked per connected mesh part ("loose part": geometry sharing no edge/vertex with the rest, even within the same mesh), useful as an object/part mask.
+  - **World Gradient** — a black-to-white gradient along world Z, black at the lowest point of all selected objects combined and white at the highest, so the gradient is continuous across objects.
+  - **Object Gradient** — the same black-to-white gradient, but per object along its own local Z axis (bottom to top of that object's geometry, modifiers included).
 
 - **Bake**
 Bakes the selected Map for each selected mesh object. Select object(s) in the 3D Viewport, then press Bake from the UV/Image Editor sidebar.

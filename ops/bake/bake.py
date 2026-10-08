@@ -2,6 +2,7 @@ import colorsys
 import random
 
 import bpy
+import numpy as np
 from bpy.types import Operator
 
 from ..common.context_guard import preserve_selection_and_active
@@ -11,12 +12,16 @@ from ..common.context_guard import preserve_selection_and_active
 CYCLES_BAKE_TYPE = {
     'AO': 'AO',
     'MESH_ID': 'EMIT',
+    'WORLD_GRADIENT': 'EMIT',
+    'OBJECT_GRADIENT': 'EMIT',
 }
 
 # Suffix used for each map type's generated image name.
 IMAGE_SUFFIX = {
     'AO': 'AO',
     'MESH_ID': 'MeshID',
+    'WORLD_GRADIENT': 'WorldGradient',
+    'OBJECT_GRADIENT': 'ObjectGradient',
 }
 
 # Name of the temporary vertex color attribute used to carry per-loose-part
@@ -172,10 +177,13 @@ class ARTISTANT_OT_bake(Operator):
 
         return teardown
 
-    def _prepare_mesh_id_material(self, mat):
-        """Temporarily route the ID color attribute into the material's surface
-        output as flat emission, so the EMIT bake pass captures per-part colors
+    def _prepare_emission_material(self, mat, build_color):
+        """Temporarily route a generated color into the material's surface
+        output as flat emission, so the EMIT bake pass captures that color
         instead of whatever the material actually looks like.
+
+        build_color(nt, x, y) creates the nodes that produce the color and
+        returns (color_output_socket, created_nodes).
 
         Returns a teardown callable that restores the material exactly as it was.
         """
@@ -192,18 +200,16 @@ class ARTISTANT_OT_bake(Operator):
         surface_input = output.inputs['Surface']
         original_from_socket = surface_input.links[0].from_socket if surface_input.is_linked else None
 
-        attribute = nt.nodes.new('ShaderNodeAttribute')
-        attribute.name = "Artistant_Bake_ID_Attribute"
-        attribute.label = attribute.name
-        attribute.attribute_name = MESH_ID_COLOR_ATTR_NAME
-        attribute.location = (output.location.x - 400, output.location.y - 200)
+        color_socket, created_nodes = build_color(
+            nt, output.location.x - 800, output.location.y - 200
+        )
 
         emission = nt.nodes.new('ShaderNodeEmission')
-        emission.name = "Artistant_Bake_ID_Emission"
+        emission.name = "Artistant_Bake_Emission"
         emission.label = emission.name
         emission.location = (output.location.x - 200, output.location.y - 200)
 
-        nt.links.new(attribute.outputs['Color'], emission.inputs['Color'])
+        nt.links.new(color_socket, emission.inputs['Color'])
         nt.links.new(emission.outputs['Emission'], surface_input)
 
         def teardown():
@@ -212,11 +218,76 @@ class ARTISTANT_OT_bake(Operator):
             if original_from_socket is not None:
                 nt.links.new(original_from_socket, surface_input)
             nt.nodes.remove(emission)
-            nt.nodes.remove(attribute)
+            for node in created_nodes:
+                nt.nodes.remove(node)
 
         return teardown
 
-    def _bake_object(self, context, obj, image, map_type, clear=True):
+    @staticmethod
+    def _build_mesh_id_color(nt, x, y):
+        attribute = nt.nodes.new('ShaderNodeAttribute')
+        attribute.name = "Artistant_Bake_ID_Attribute"
+        attribute.label = attribute.name
+        attribute.attribute_name = MESH_ID_COLOR_ATTR_NAME
+        attribute.location = (x + 400, y)
+        return attribute.outputs['Color'], [attribute]
+
+    @staticmethod
+    def _gradient_color_builder(world_space, z_min, z_max):
+        """Return a build_color callable producing a black (z_min) to white
+        (z_max) gradient along Z, in world or object (local) space."""
+        if z_max - z_min < 1e-6:
+            z_max = z_min + 1.0  # flat geometry: avoid a zero-width range
+
+        def build(nt, x, y):
+            if world_space:
+                source = nt.nodes.new('ShaderNodeNewGeometry')
+                position = source.outputs['Position']
+            else:
+                source = nt.nodes.new('ShaderNodeTexCoord')
+                position = source.outputs['Object']
+            source.location = (x, y)
+
+            separate = nt.nodes.new('ShaderNodeSeparateXYZ')
+            separate.location = (x + 200, y)
+            nt.links.new(position, separate.inputs['Vector'])
+
+            map_range = nt.nodes.new('ShaderNodeMapRange')
+            map_range.location = (x + 400, y)
+            map_range.clamp = True
+            map_range.inputs['From Min'].default_value = z_min
+            map_range.inputs['From Max'].default_value = z_max
+            map_range.inputs['To Min'].default_value = 0.0
+            map_range.inputs['To Max'].default_value = 1.0
+            nt.links.new(separate.outputs['Z'], map_range.inputs['Value'])
+
+            return map_range.outputs['Result'], [source, separate, map_range]
+
+        return build
+
+    @staticmethod
+    def _z_range(context, obj, world_space):
+        """(min, max) Z of obj's evaluated geometry, in world or local space.
+        None if the object has no vertices."""
+        eval_obj = obj.evaluated_get(context.evaluated_depsgraph_get())
+        mesh = eval_obj.to_mesh()
+        try:
+            count = len(mesh.vertices)
+            if count == 0:
+                return None
+            co = np.empty(count * 3, dtype=np.float32)
+            mesh.vertices.foreach_get("co", co)
+            co = co.reshape(count, 3)
+            if world_space:
+                m = np.array(obj.matrix_world)
+                z = co @ m[2, :3] + m[2, 3]
+            else:
+                z = co[:, 2]
+            return float(z.min()), float(z.max())
+        finally:
+            eval_obj.to_mesh_clear()
+
+    def _bake_object(self, context, obj, image, map_type, clear=True, world_range=None):
         """Bake obj into image. With clear=False the existing image content is
         kept, which is how several objects accumulate into one shared image.
         """
@@ -235,8 +306,20 @@ class ARTISTANT_OT_bake(Operator):
 
             if map_type == 'MESH_ID':
                 teardowns.append(self._prepare_mesh_id_colors(obj))
+                build_color = self._build_mesh_id_color
+            elif map_type == 'WORLD_GRADIENT':
+                build_color = self._gradient_color_builder(True, *world_range)
+            elif map_type == 'OBJECT_GRADIENT':
+                local_range = self._z_range(context, obj, False)
+                if local_range is None:
+                    raise RuntimeError("object has no geometry")
+                build_color = self._gradient_color_builder(False, *local_range)
+            else:
+                build_color = None
+
+            if build_color is not None:
                 for mat in materials:
-                    teardowns.append(self._prepare_mesh_id_material(mat))
+                    teardowns.append(self._prepare_emission_material(mat, build_color))
 
             result = bpy.ops.object.bake(type=CYCLES_BAKE_TYPE[map_type], use_clear=clear)
             if 'FINISHED' not in result:
@@ -287,6 +370,16 @@ class ARTISTANT_OT_bake(Operator):
                 # Combined: one shared image; only the first successful bake
                 # clears it, so later objects add to it. Every object stays in
                 # the scene, so they (and floors etc.) still occlude each other.
+                # World gradient spans the lowest to highest point of all
+                # selected objects together, so it must be known up front.
+                world_range = None
+                if map_type == 'WORLD_GRADIENT':
+                    ranges = [r for r in (self._z_range(context, o, True) for o in objects_to_bake) if r]
+                    if not ranges:
+                        self.report({'ERROR'}, "Selected objects have no geometry")
+                        return {'CANCELLED'}
+                    world_range = (min(r[0] for r in ranges), max(r[1] for r in ranges))
+
                 shared_image = None
                 if combine:
                     active = context.view_layer.objects.active
@@ -296,10 +389,10 @@ class ARTISTANT_OT_bake(Operator):
                 for obj in objects_to_bake:
                     try:
                         if combine:
-                            self._bake_object(context, obj, shared_image, map_type, clear=not baked)
+                            self._bake_object(context, obj, shared_image, map_type, clear=not baked, world_range=world_range)
                         else:
                             image = self._create_bake_image(obj.name, size, map_type)
-                            self._bake_object(context, obj, image, map_type)
+                            self._bake_object(context, obj, image, map_type, world_range=world_range)
                         baked.append(obj.name)
                     except Exception as e:
                         failed.append(f"{obj.name} ({e})")
