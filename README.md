@@ -28,6 +28,9 @@ If objects are selected, it removes parented objects from the current selection.
 - **Visualize Normals**
 Adds a quick normals visualization setup for selected editable objects.
 
+- **Bend** (Properties > Modifiers > Add Modifier > Deform > Bend)
+Geometry Nodes bend modifier (node group stored in `assets/bend_modifier.blend`). Pick the Axis (X/Y/Z); two gizmos appear at the ends of the object's bounding box along that axis. Move and rotate them in the viewport and the object bends/stretches between them. The mesh needs enough subdivisions along the axis to bend smoothly.
+
 ### Export Unity Asset
 
 - **Export Folder**
@@ -64,6 +67,7 @@ Reloads all images in the current Blender file from disk.
 - **Map**
 Choose which texture map to bake from a thumbnail picker (click the preview to open the grid). Thumbnails live in `assets/thumbnails/bake_<map>.png` (`bake_ao.png`, `bake_mesh_id.png`); replace them to change the artwork. A missing file just shows the entry without a thumbnail.
   - **Ambient Occlusion** — standard AO shading baked into a texture.
+  - **UV Island ID** — a distinct, deterministic color baked per UV island of the active UV map (faces joined across edges that are not UV seams), useful as an island mask.
   - **Mesh ID** — a distinct, deterministic color baked per connected mesh part ("loose part": geometry sharing no edge/vertex with the rest, even within the same mesh), useful as an object/part mask.
   - **World Gradient** — a black-to-white gradient along world Z, black at the lowest point of all selected objects combined and white at the highest, so the gradient is continuous across objects.
   - **Object Gradient** — the same black-to-white gradient, but per object along its own local Z axis (bottom to top of that object's geometry, modifiers included).

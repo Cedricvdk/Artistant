@@ -6,6 +6,7 @@ from ..ui.panel_uv import ARTISTANT_PT_uv_panel
 from ..ops.modeling.smart_group import ARTISTANT_OT_smart_group_operator
 from ..ops.modeling.floor_pivot import ARTISTANT_OT_floor_pivot
 from ..ops.modeling.floor_object import ARTISTANT_OT_floor_object
+from ..ops.modeling.bend import ARTISTANT_OT_add_bend_modifier, draw_add_bend_menu_item
 from ..ops.export.unity_fbx import ARTISTANT_OT_export_unity_fbx
 from ..ops.util.reload_images import ARTISTANT_OT_reload_images
 from ..ops.visualization.visualize_normals import ARTISTANT_OT_visualize_normals
@@ -31,6 +32,7 @@ classes = (
     ARTISTANT_OT_smart_group_operator,
     ARTISTANT_OT_floor_pivot,
     ARTISTANT_OT_floor_object,
+    ARTISTANT_OT_add_bend_modifier,
     ARTISTANT_OT_export_unity_fbx,
     ARTISTANT_OT_reload_images,
     ARTISTANT_OT_visualize_normals,
@@ -56,10 +58,13 @@ def register():
     # Keep the bake texture list in sync with the active object (see
     # ops/bake/texture_list.py for why this can't just happen in Panel.draw()).
     register_active_object_watcher()
+    # Bend lives in Add Modifier > Deform
+    bpy.types.OBJECT_MT_modifier_add_deform.append(draw_add_bend_menu_item)
 
 
 def unregister():
     """Unregister all scene properties and operator/panel classes from Blender."""
+    bpy.types.OBJECT_MT_modifier_add_deform.remove(draw_add_bend_menu_item)
     # Unregister in reverse order: watcher and properties first, then classes
     unregister_active_object_watcher()
     unregister_scene_properties()
