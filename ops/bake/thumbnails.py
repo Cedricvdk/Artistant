@@ -12,6 +12,7 @@ from ...core.paths import asset_path
 BAKE_MAP_TYPES = (
     ('AO', "Ambient Occlusion", "Bake ambient occlusion shading into a texture"),
     ('MESH_ID', "Mesh ID", "Bake a distinct color per connected mesh part (loose part); useful as an object/part mask"),
+    ('UV_ISLAND_ID', "UV Island ID", "Bake a distinct color per UV island of the active UV map; useful as an island mask"),
     ('WORLD_GRADIENT', "World Gradient", "Bake a black (lowest point) to white (highest point) gradient along world Z, spanning all selected objects"),
     ('OBJECT_GRADIENT', "Object Gradient", "Bake a black (bottom) to white (top) gradient along each object's own local Z axis"),
 )

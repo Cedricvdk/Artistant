@@ -12,6 +12,7 @@ from ..common.context_guard import preserve_selection_and_active
 CYCLES_BAKE_TYPE = {
     'AO': 'AO',
     'MESH_ID': 'EMIT',
+    'UV_ISLAND_ID': 'EMIT',
     'WORLD_GRADIENT': 'EMIT',
     'OBJECT_GRADIENT': 'EMIT',
 }
@@ -20,12 +21,13 @@ CYCLES_BAKE_TYPE = {
 IMAGE_SUFFIX = {
     'AO': 'AO',
     'MESH_ID': 'MeshID',
+    'UV_ISLAND_ID': 'UVIslandID',
     'WORLD_GRADIENT': 'WorldGradient',
     'OBJECT_GRADIENT': 'ObjectGradient',
 }
 
-# Name of the temporary vertex color attribute used to carry per-loose-part
-# Mesh ID colors into the bake.
+# Name of the temporary color attribute used to carry per-loose-part or per-UV-island
+# Mesh ID / UV Island ID colors into the bake.
 MESH_ID_COLOR_ATTR_NAME = "Artistant_Bake_ID_Color"
 
 
@@ -67,6 +69,48 @@ def _compute_loose_parts(mesh):
         vertex_part[i] = part_id
 
     return vertex_part, len(roots)
+
+
+def _compute_uv_islands(mesh):
+    """Group a mesh's faces into UV islands of its active UV map.
+
+    Two faces are in the same island when they share an edge whose UV
+    coordinates also coincide on both faces (i.e. the edge is not a UV seam).
+
+    Returns (face_index -> island_id list, island_count).
+    """
+    uv_layer = mesh.uv_layers.active
+    poly_count = len(mesh.polygons)
+    parent = list(range(poly_count))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    # (vertex pair, UV of each end) -> first face seen with that edge/UVs.
+    edge_faces = {}
+    for poly in mesh.polygons:
+        start, total = poly.loop_start, poly.loop_total
+        for k in range(total):
+            a = start + k
+            b = start + (k + 1) % total
+            va, vb = mesh.loops[a].vertex_index, mesh.loops[b].vertex_index
+            ua = tuple(round(c, 5) for c in uv_layer.data[a].uv)
+            ub = tuple(round(c, 5) for c in uv_layer.data[b].uv)
+            key = (va, ua, vb, ub) if va <= vb else (vb, ub, va, ua)
+            other = edge_faces.setdefault(key, poly.index)
+            if other != poly.index:
+                ra, rb = find(other), find(poly.index)
+                if ra != rb:
+                    parent[ra] = rb
+
+    roots = {}
+    face_island = [0] * poly_count
+    for i in range(poly_count):
+        face_island[i] = roots.setdefault(find(i), len(roots))
+    return face_island, len(roots)
 
 
 def _mesh_id_part_color(obj, part_index):
@@ -169,6 +213,34 @@ class ARTISTANT_OT_bake(Operator):
         for v in mesh.vertices:
             r, g, b = colors[vertex_part[v.index]]
             color_attr.data[v.index].color = (r, g, b, 1.0)
+
+        def teardown():
+            attr = mesh.color_attributes.get(MESH_ID_COLOR_ATTR_NAME)
+            if attr is not None:
+                mesh.color_attributes.remove(attr)
+
+        return teardown
+
+    def _prepare_uv_island_colors(self, obj):
+        """Write a distinct color per UV island of the active UV map into a
+        temporary face-corner color attribute.
+
+        Returns a teardown callable that removes the temporary attribute.
+        """
+        mesh = obj.data
+        face_island, island_count = _compute_uv_islands(mesh)
+        colors = [_mesh_id_part_color(obj, i) for i in range(island_count)]
+
+        existing = mesh.color_attributes.get(MESH_ID_COLOR_ATTR_NAME)
+        if existing is not None:
+            mesh.color_attributes.remove(existing)
+        color_attr = mesh.color_attributes.new(
+            name=MESH_ID_COLOR_ATTR_NAME, type='BYTE_COLOR', domain='CORNER'
+        )
+        for poly in mesh.polygons:
+            r, g, b = colors[face_island[poly.index]]
+            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+                color_attr.data[loop_index].color = (r, g, b, 1.0)
 
         def teardown():
             attr = mesh.color_attributes.get(MESH_ID_COLOR_ATTR_NAME)
@@ -306,6 +378,9 @@ class ARTISTANT_OT_bake(Operator):
 
             if map_type == 'MESH_ID':
                 teardowns.append(self._prepare_mesh_id_colors(obj))
+                build_color = self._build_mesh_id_color
+            elif map_type == 'UV_ISLAND_ID':
+                teardowns.append(self._prepare_uv_island_colors(obj))
                 build_color = self._build_mesh_id_color
             elif map_type == 'WORLD_GRADIENT':
                 build_color = self._gradient_color_builder(True, *world_range)
